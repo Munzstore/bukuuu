@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buku Kenangan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: #fff5f7;
+            overflow-x: hidden;
+            min-height: 100vh;
+            color: #4a1d1d;
+        }
+        .accent-font {
+            font-family: 'Dancing Script', cursive;
+        }
+        
+        /* Falling Petals */
+        .petal {
+            position: absolute;
+            background: #ffd1dc;
+            border-radius: 150% 0 150% 0;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ffe4e6;
+            box-shadow: 0 10px 25px rgba(251, 113, 133, 0.1);
+        }
+
+        .book-container {
+            perspective: 2000px;
+            z-index: 10;
+        }
+        .book {
+            position: relative;
+            width: 320px;
+            height: 450px;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+        }
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: white;
+            border: 1px solid #fecdd3;
+            border-radius: 0 15px 15px 0;
+            transform-origin: left;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backface-visibility: hidden;
+            cursor: pointer;
+            box-shadow: 5px 5px 15px rgba(251, 113, 133, 0.05);
+            overflow: hidden;
+        }
+
+        .page.flipped {
+            transform: rotateY(-180deg);
+        }
+        .heart-photo {
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 15px;
+            border: 3px solid white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            opacity: 0;
+            z-index: 100;
+        }
+        .hidden-step {
+            display: none !important;
+        }
+
+        .btn-pink {
+            background: #fb7185;
+            transition: all 0.3s ease;
+        }
+        .btn-pink:hover {
+            background: #f43f5e;
+            transform: scale(1.02);
+        }
+
+        /* Minimal Music Control */
+        .music-toggle-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(251, 113, 133, 0.2);
+            z-index: 100;
+            border: 1px solid #ffe4e6;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <!-- Petal Container -->
+    <div id="petal-container" class="fixed inset-0 pointer-events-none"></div>
+
+    <!-- Hidden Audio Element -->
+    <audio id="bgMusic" loop>
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Invisible/Minimal Music Button -->
+    <div id="musicControl" class="music-toggle-btn hidden" onclick="toggleMusic()">
+        <span id="musicIcon">⏸️</span>
+    </div>
+
+    <!-- Step 1: Input Nama -->
+    <div id="step-1" class="max-w-md w-full glass-card p-10 rounded-3xl text-center space-y-6">
+        <div class="space-y-2">
+            <h1 class="text-4xl font-bold text-pink-600 accent-font">Halo!</h1>
+            <p class="text-slate-500 text-sm">Sebelum mulai, tulis nama kamu dulu ya..</p>
+        </div>
+        <input type="text" id="userName" placeholder="Nama kamu di sini" class="w-full px-4 py-4 bg-pink-50 border border-pink-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300 text-center transition-all font-semibold">
+        <button onclick="goToStep2()" class="btn-pink w-full text-white py-4 rounded-xl font-bold tracking-wide shadow-lg">Lanjut!</button>
+    </div>
+
+    <!-- Step 2: Upload 6 Foto -->
+    <div id="step-2" class="hidden-step max-w-lg w-full glass-card p-8 rounded-3xl text-center space-y-6">
+        <div class="space-y-1">
+            <h2 class="text-2xl font-bold text-pink-600">Simpan Kenangan</h2>
+            <p class="text-xs text-pink-400 font-semibold tracking-wider">Pilih 6 foto yang paling berkesan</p>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-3 p-3 bg-pink-50/50 rounded-2xl" id="preview-grid">
+            <div class="aspect-square bg-white rounded-xl border-2 border-dashed border-pink-200 flex items-center justify-center text-[10px] text-pink-300">1</div>
+            <div class="aspect-square bg-white rounded-xl border-2 border-dashed border-pink-200 flex items-center justify-center text-[10px] text-pink-300">2</div>
+            <div class="aspect-square bg-white rounded-xl border-2 border-dashed border-pink-200 flex items-center justify-center text-[10px] text-pink-300">3</div>
+            <div class="aspect-square bg-white rounded-xl border-2 border-dashed border-pink-200 flex items-center justify-center text-[10px] text-pink-300">4</div>
+            <div class="aspect-square bg-white rounded-xl border-2 border-dashed border-pink-200 flex items-center justify-center text-[10px] text-pink-300">5</div>
+            <div class="aspect-square bg-white rounded-xl border-2 border-dashed border-pink-200 flex items-center justify-center text-[10px] text-pink-300">6</div>
+        </div>
+
+        <div class="space-y-4">
+            <input type="file" id="photoInput" multiple accept="image/*" class="hidden" onchange="handleFiles(this.files)">
+            <label for="photoInput" class="inline-block px-8 py-3 bg-white border-2 border-pink-300 rounded-xl text-pink-500 text-sm cursor-pointer hover:bg-pink-50 transition-all font-bold">Pilih Galeri</label>
+            <div id="uploadStatus" class="text-xs text-pink-400 font-bold h-4"></div>
+            <button id="btnStartBook" onclick="goToStep3()" disabled class="btn-pink w-full text-white py-4 rounded-xl font-bold shadow-lg disabled:opacity-50">BUKA BUKUNYA ✨</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Digital Book -->
+    <div id="step-3" class="hidden-step flex-col items-center">
+        <div class="book-container mb-8">
+            <div class="book" id="book-element">
+                <!-- Cover -->
+                <div class="page z-[20] bg-gradient-to-br from-pink-400 to-rose-500 text-white flex-col p-10 text-center" onclick="flipPage(this)">
+                    <div class="text-5xl mb-4">🌸</div>
+                    <h2 class="accent-font text-5xl mb-4">Buat Kamu</h2>
+                    <div class="h-1 w-12 bg-white/50 mx-auto mb-6 rounded-full"></div>
+                    <p class="text-2xl font-bold tracking-tight" id="display-name"></p>
+                    <p class="text-[12px] opacity-80 absolute bottom-10 uppercase font-bold tracking-[0.2em]">Buka perlahan ya..</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Animation Layer -->
+    <div id="animation-container" class="fixed inset-0 pointer-events-none overflow-hidden flex items-center justify-center z-50"></div>
+
+    <script>
+        let userName = "";
+        let userPhotos = [];
+        const quotes = [
+            "Terima kasih ya sudah terus berusaha sampai sekarang.",
+            "Ingat, kamu itu hebat dan berharga lebih dari yang kamu tahu.",
+            "Semoga hari-hari kamu ke depan selalu penuh semangat baru.",
+            "Gak apa-apa pelan-pelan, yang penting jangan berhenti ya.",
+            "Teruslah melangkah, masa depan cerah lagi nungguin kamu.",
+            "Apresiasi besar buat kamu yang sudah bertahan sejauh ini!"
+        ];
+
+        function createPetal() {
+            const container = document.getElementById('petal-container');
+            const petal = document.createElement('div');
+            petal.className = 'petal';
+            const startX = Math.random() * window.innerWidth;
+            const size = Math.random() * 10 + 10;
+            petal.style.left = startX + 'px';
+            petal.style.top = '-15px';
+            petal.style.width = size + 'px';
+            petal.style.height = size + 'px';
+            container.appendChild(petal);
+            
+            gsap.to(petal, {
+                y: window.innerHeight + 20,
+                x: startX + (Math.random() * 150 - 75),
+                rotation: Math.random() * 360,
+                duration: Math.random() * 5 + 5,
+                ease: "none",
+                onComplete: () => petal.remove()
+            });
+        }
+        setInterval(createPetal, 400);
+
+        function toggleMusic() {
+            const music = document.getElementById('bgMusic');
+            const icon = document.getElementById('musicIcon');
+            if (music.paused) {
+                music.play();
+                icon.innerText = "⏸️";
+            } else {
+                music.pause();
+                icon.innerText = "▶️";
+            }
+        }
+
+        function goToStep2() {
+            const input = document.getElementById('userName').value;
+            if (input.trim() === "") return;
+            userName = input;
+            document.getElementById('display-name').innerText = userName;
+            gsap.to("#step-1", { opacity: 0, scale: 0.9, duration: 0.4, onComplete: () => {
+                document.getElementById('step-1').classList.add('hidden-step');
+                document.getElementById('step-2').classList.remove('hidden-step');
+                gsap.from("#step-2", { opacity: 0, scale: 1.1, duration: 0.5 });
+            }});
+        }
+
+        function handleFiles(files) {
+            if (files.length !== 6) {
+                alert("Pilih 6 foto dulu ya!");
+                return;
+            }
+            userPhotos = [];
+            const previewGrid = document.getElementById('preview-grid');
+            previewGrid.innerHTML = "";
+            Array.from(files).forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    userPhotos.push(e.target.result);
+                    const div = document.createElement('div');
+                    div.className = "aspect-square rounded-xl overflow-hidden shadow-sm";
+                    div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                    previewGrid.appendChild(div);
+                    if (userPhotos.length === 6) {
+                        const btn = document.getElementById('btnStartBook');
+                        btn.disabled = false;
+                        document.getElementById('uploadStatus').innerText = "Foto sudah siap! ✨";
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function goToStep3() {
+            const music = document.getElementById('bgMusic');
+            music.play().then(() => {
+                document.getElementById('musicControl').classList.remove('hidden');
+            }).catch(e => {
+                document.getElementById('musicControl').classList.remove('hidden');
+                document.getElementById('musicIcon').innerText = "▶️";
+            });
+
+            gsap.to("#step-2", { opacity: 0, duration: 0.5, onComplete: () => {
+                document.getElementById('step-2').classList.add('hidden-step');
+                document.getElementById('step-3').classList.remove('hidden-step');
+                setupBook();
+            }});
+        }
+
+        function setupBook() {
+            const book = document.getElementById('book-element');
+            userPhotos.forEach((photo, i) => {
+                const page = document.createElement('div');
+                page.className = "page p-6 bg-white";
+                page.style.zIndex = 10 - i;
+                page.innerHTML = `
+                    <div class="w-full h-full flex flex-col items-center justify-between py-4">
+                        <div class="w-full h-[65%] overflow-hidden rounded-2xl shadow-sm border-2 border-pink-50">
+                            <img src="${photo}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="text-center px-2">
+                            <p class="text-[10px] text-pink-300 font-bold uppercase tracking-widest mb-2">#Memory ${i+1}</p>
+                            <p class="text-pink-700 text-sm font-semibold leading-relaxed italic">"${quotes[i]}"</p>
+                        </div>
+                    </div>
+                `;
+                page.onclick = () => flipPage(page);
+                book.appendChild(page);
+            });
+
+            const lastPage = document.createElement('div');
+            lastPage.className = "page p-10 bg-pink-50 flex-col text-center";
+            lastPage.style.zIndex = 0;
+            lastPage.innerHTML = `
+                <div class="space-y-6">
+                    <h3 class="accent-font text-4xl text-pink-500">Terima Kasih</h3>
+                    <div class="h-1 w-10 bg-pink-200 mx-auto rounded-full"></div>
+                    <p class="text-pink-800 text-sm font-bold leading-relaxed">
+                        Semoga sedikit kejutan ini bikin mood kamu lebih baik ya hari ini. Sukses terus buat kamu, ${userName}!
+                    </p>
+                    <div class="text-2xl animate-bounce">🎀</div>
+                </div>
+            `;
+            // Trigger final animation immediately when the last page is clicked/opened
+            lastPage.onclick = () => {
+                flipPage(lastPage);
+                setTimeout(triggerFinalAnimation, 800);
+            };
+            book.appendChild(lastPage);
+        }
+
+        function flipPage(pageElement) {
+            pageElement.classList.toggle('flipped');
+        }
+
+        function triggerFinalAnimation() {
+            gsap.to("#step-3", { opacity: 0, duration: 1, onComplete: () => {
+                document.getElementById('step-3').classList.add('hidden-step');
+            }});
+            
+            const container = document.getElementById('animation-container');
+            const points = calculateHeartPoints(18); 
+            const repeatedPhotos = [...userPhotos, ...userPhotos, ...userPhotos].slice(0, 18);
+            
+            repeatedPhotos.forEach((src, i) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'heart-photo';
+                container.appendChild(img);
+                const point = points[i];
+                gsap.set(img, {
+                    x: (Math.random() - 0.5) * window.innerWidth,
+                    y: (Math.random() - 0.5) * window.innerHeight,
+                    rotation: Math.random() * 360,
+                    opacity: 0,
+                    scale: 0
+                });
+                gsap.to(img, {
+                    x: point.x,
+                    y: point.y,
+                    rotation: 0,
+                    opacity: 1,
+                    scale: 1,
+                    duration: 2,
+                    delay: i * 0.05,
+                    ease: "back.out(1.2)"
+                });
+            });
+
+            setTimeout(() => {
+                const finalMsg = document.createElement('div');
+                finalMsg.className = "fixed inset-0 flex flex-col items-center justify-center z-[60] pointer-events-none";
+                finalMsg.innerHTML = `
+                    <h1 class="accent-font text-6xl md:text-8xl text-pink-600 opacity-0">Keep Smiling!</h1>
+                `;
+                document.body.appendChild(finalMsg);
+                gsap.to(finalMsg.querySelector('h1'), { opacity: 1, y: -20, scale: 1, duration: 1.5, ease: "back.out" });
+            }, 2000);
+        }
+
+        function calculateHeartPoints(numPoints) {
+            const points = [];
+            const size = 16; 
+            for (let i = 0; i < numPoints; i++) {
+                const t = (i / numPoints) * 2 * Math.PI;
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                points.push({ x: x * size, y: y * size });
+            }
+            return points;
+        }
+    </script>
+</body>
+</html>
